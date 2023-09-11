@@ -54,10 +54,22 @@ class MyAgentState
 		if (agent_last_action==ACTION_MOVE_FORWARD && !bump)// agent move forward and doesn't bump into obstacles
 	    {
             switch (agent_direction) {
-                case MyAgentState.NORTH -> agent_y_position--;
-                case MyAgentState.EAST -> agent_x_position++;
-                case MyAgentState.SOUTH -> agent_y_position++;
-                case MyAgentState.WEST -> agent_x_position--;
+                case MyAgentState.NORTH -> {
+//					if(MyAgentState.xIsValid(agent_x_position - 1))
+						agent_x_position--;
+				}
+                case MyAgentState.EAST -> {
+//					if(MyAgentState.yIsValid(agent_y_position + 1))
+						agent_y_position++;
+				}
+                case MyAgentState.SOUTH ->{
+//					if(MyAgentState.xIsValid(agent_x_position +1))
+						agent_x_position++;
+				}
+                case MyAgentState.WEST -> {
+//					if(MyAgentState.yIsValid(agent_y_position - 1))
+						agent_y_position--;
+				}
             }
 	    }
 		//if p = home && finished
@@ -66,14 +78,16 @@ class MyAgentState
 	
 	public void updateWorld(int x_position, int y_position, int info)
 	{
+		// -3 out of boundary
 		world[y_position][x_position] = info;
 	}
 	
 	public void printWorldDebug()
 	{
+		System.out.printf("@Now: %d,%d @@@\n",agent_x_position, agent_y_position);
 		for (int i=0; i < world.length; i++)
 		{
-			for (int j=0; j < world[i].length ; j++)
+			for (int j=0; j < world.length ; j++)
 			{
 				if (world[i][j]==UNKNOWN)
 					System.out.print(" ? ");
@@ -89,12 +103,17 @@ class MyAgentState
 			System.out.println();
 		}
 	}
-	public static boolean isInScope(int x, int y){
+	public static boolean xIsValid(int x){
+		return (0 <= x && x < WIDTH);
+	}
+	public static boolean yIsValid(int y){
+		return (0 <= y & y < HEIGHT);
+	}
+	public static boolean xyIsValid(int x, int y){
 		return (0 <= x && x < WIDTH) && (0 <= y & y < HEIGHT);
 	}
 	public int getState(int x, int y){
-		if(isInScope(x,y)){
-			System.out.println("(x,y): (" +x+", "+y+")" );
+		if(xyIsValid(x,y)){
 			return this.world[y][x];
 		}else {
 			return ERROR;
@@ -153,7 +172,7 @@ class MyAgentProgram implements AgentProgram {
 
 
 
-	private int initialRandomActions = 0;//todo: 10;
+	private int initialRandomActions = 5;
 	private Random random_generator = new Random();
 	
 	//todo: Here you can define your variables!
@@ -191,24 +210,31 @@ class MyAgentProgram implements AgentProgram {
 		initialRandomActions--;
 		state.updatePosition(percept);
 		if(action==0) {
-		    state.agent_direction = ((state.agent_direction-1) % 4);
+		    state.agent_direction = ((state.agent_direction+1) % 4);
 		    if (state.agent_direction<0)
 		    	state.agent_direction +=4;
 		    state.agent_last_action = state.ACTION_TURN_LEFT;
 			return LIUVacuumEnvironment.ACTION_TURN_LEFT;
 		} else if (action==1) {
-			state.agent_direction = ((state.agent_direction+1) % 4);
+			state.agent_direction = ((state.agent_direction + 4 -1) % 4);
 		    state.agent_last_action = state.ACTION_TURN_RIGHT;
 		    return LIUVacuumEnvironment.ACTION_TURN_RIGHT;
 		}
 		state.agent_last_action=state.ACTION_MOVE_FORWARD;
 		return LIUVacuumEnvironment.ACTION_MOVE_FORWARD;
 	}
+	public void stackPrint() {
+		System.out.println("Stack Contents:");
+		for (Pair pair : stack) {
+			System.out.println("(" + pair.getX() + ", " + pair.getY() + ")");
+		}
+	}
 	
 	
 	@Override
 	public Action execute(Percept percept) {
 		//step 0: check initialization
+		state.printWorldDebug();
 		if(!state.initialized){
 			// DO NOT REMOVE this if condition!!!
 			if (initialRandomActions >0) {
@@ -225,16 +251,18 @@ class MyAgentProgram implements AgentProgram {
 				cur_pair.setXY(state.agent_x_position, state.agent_y_position);
 				stack.push(cur_pair);
 				state.updateWorld(cur_pair.getX(), cur_pair.getY(), state.HOME);
+				state.initialized = true;
 				return LIUVacuumEnvironment.ACTION_SUCK;
 			}
 		}
 
     	// This example agent program will update the internal agent state while only moving forward.
     	// todo: START HERE - code below should be modified!
+//		state.printWorldDebug();
 
-    	System.out.println("x=" + state.agent_x_position);
-    	System.out.println("y=" + state.agent_y_position);
-    	System.out.println("dir=" + state.agent_direction);
+//    	System.out.println("x=" + state.agent_x_position);
+//    	System.out.println("y=" + state.agent_y_position);
+//    	System.out.println("dir=" + state.agent_direction);
 
 		if(iterationCounter > 1){//continuously change direction
 			iterationCounter--;
@@ -270,18 +298,19 @@ class MyAgentProgram implements AgentProgram {
 					state.updateWorld(cur_pair.getWest().getX(), cur_pair.getWest().getY(), state.WALL);
 				}
 			}
-			stack.pop();
+			if(!stack.isEmpty()){
+				stack.pop();
+			}
 			//add walls into Treemap
 			if(!barriers.containsKey(cur_pair)){//for looking up when doing search
 				barriers.put(cur_pair, Boolean.TRUE);
 			}
-			//Todo: bumping action, should we turn?
-//			state.agent_last_action=state.ACTION_NONE;
-//			myAction = NoOpAction.NO_OP;
-//			return myAction;
 	    }
 	    else if (dirt) {//dirt for Pacman not for "world"
-			cur_pair.setXY(state.agent_x_position, state.agent_y_position);
+			if(!stack.isEmpty()){
+				cur_pair = stack.peek();
+			}
+//			cur_pair.setXY(state.agent_x_position, state.agent_y_position);
 			state.updateWorld(cur_pair.getX(), cur_pair.getY(), state.CLEAR);//set as dirt
 			dust.put(cur_pair, Boolean.TRUE);
 			//dirt action
@@ -305,6 +334,7 @@ class MyAgentProgram implements AgentProgram {
 		}
 
 //	    state.printWorldDebug();
+		stackPrint();
 		//BFS here, modeling a map
 		if (!stack.isEmpty()){
 			cur_pair = stack.peek();
@@ -312,25 +342,25 @@ class MyAgentProgram implements AgentProgram {
 
 			//todo: turning direction of Pacman, some of situation don't need to change direction, but some need
 			if ((state.getState(cur_pair.getNorth().getX(), cur_pair.getNorth().getY()) == state.UNKNOWN)
-					|| (state.getState(cur_pair.getNorth().getX(), cur_pair.getNorth().getY()) == state.DIRT)){
+					){
 				steeringDirection(MyAgentState.NORTH);
 				state.agent_direction = MyAgentState.NORTH;
 				stack.push(cur_pair.getNorth());
 				return myAction;
 			}else if ((state.getState(cur_pair.getEast().getX(), cur_pair.getEast().getY()) == state.UNKNOWN)
-					|| (state.getState(cur_pair.getEast().getX(), cur_pair.getEast().getY()) == state.DIRT)){
+					){
 				steeringDirection(MyAgentState.EAST);
 				state.agent_direction = MyAgentState.EAST;
 				stack.push(cur_pair.getEast());
 				return myAction;
 			} else if ((state.getState(cur_pair.getSouth().getX(), cur_pair.getSouth().getY()) == state.UNKNOWN)
-					|| (state.getState(cur_pair.getSouth().getX(), cur_pair.getSouth().getY()) == state.DIRT)) {
+					) {
 				steeringDirection(MyAgentState.SOUTH);
 				state.agent_direction = MyAgentState.SOUTH;
 				stack.push(cur_pair.getSouth());
 				return myAction;
 			} else if ((state.getState(cur_pair.getWest().getX(), cur_pair.getWest().getY()) == state.UNKNOWN)
-					|| (state.getState(cur_pair.getWest().getX(), cur_pair.getWest().getY()) == state.DIRT)){
+					){
 				steeringDirection(MyAgentState.WEST);
 				state.agent_direction = MyAgentState.WEST;
 				stack.push(cur_pair.getWest());
@@ -338,6 +368,33 @@ class MyAgentProgram implements AgentProgram {
 			} else{
 				//backtracking
 				stack.pop();
+				if(stack.isEmpty()){
+					if ((state.getState(cur_pair.getNorth().getX(), cur_pair.getNorth().getY()) == state.UNKNOWN)){
+						steeringDirection(MyAgentState.NORTH);
+						state.agent_direction = MyAgentState.NORTH;
+						stack.push(cur_pair.getNorth());
+						return myAction;
+					}else if ((state.getState(cur_pair.getEast().getX(), cur_pair.getEast().getY()) == state.UNKNOWN)){
+						steeringDirection(MyAgentState.EAST);
+						state.agent_direction = MyAgentState.EAST;
+						stack.push(cur_pair.getEast());
+						return myAction;
+					} else if ((state.getState(cur_pair.getSouth().getX(), cur_pair.getSouth().getY()) == state.UNKNOWN)) {
+						steeringDirection(MyAgentState.SOUTH);
+						state.agent_direction = MyAgentState.SOUTH;
+						stack.push(cur_pair.getSouth());
+						return myAction;
+					} else if ((state.getState(cur_pair.getWest().getX(), cur_pair.getWest().getY()) == state.UNKNOWN)){
+						steeringDirection(MyAgentState.WEST);
+						state.agent_direction = MyAgentState.WEST;
+						stack.push(cur_pair.getWest());
+						return myAction;
+					}
+					else{
+						System.out.println("COMPLETED HERE!");
+						return NoOpAction.NO_OP;
+					}
+				}
 				Pair undo_pair = stack.peek();
 				int x_diff = undo_pair.getX() - cur_pair.getX();
 				if(x_diff != 0){
@@ -358,11 +415,8 @@ class MyAgentProgram implements AgentProgram {
 			}
 		}else{
 			System.out.println("COMPLETED!");
-			return NoOpAction.NO_OP;//BFS completed
+			return NoOpAction.NO_OP;//DFS
 		}
-
-	    //todo: Next action selection based on the percept value
-
 		return myAction;
 	}
 }
@@ -374,6 +428,7 @@ public class MyVacuumAgent extends AbstractAgent {
 		AgentProgram agentProgram = super.program;
 
 	}
+
 	@Override
 	public Action execute(Percept p) {
 
