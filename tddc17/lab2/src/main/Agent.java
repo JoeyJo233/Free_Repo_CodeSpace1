@@ -337,7 +337,7 @@ public class Agent {
      **  @param start - the start node
      **  @param goal - the goal node
      **  @param method - the method for planning
-     **  @param debug - a debug value 
+     **  @param printResult- a debug value
      **  @return 
      **
      *******************************************************************************
