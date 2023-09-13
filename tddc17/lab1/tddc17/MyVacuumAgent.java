@@ -150,9 +150,7 @@ class MyAgentProgram implements AgentProgram {
 		public Pair getNorth(){
 			return new Pair(this.row-1, this.col);
 		}
-		public Pair getSouth(){
-			return new Pair(this.row + 1, this.col);
-		}
+		public Pair getSouth(){	return new Pair(this.row + 1, this.col);}
 		@Override
 		public int compareTo(Pair other) {
 			int xComparison = Integer.compare(this.row, other.row);
@@ -396,19 +394,19 @@ class MyAgentProgram implements AgentProgram {
 					}
 				}
 				Pair undo_pair = stack.peek();
-				int x_diff = undo_pair.getRow() - cur_pair.getRow();
-				if(x_diff != 0){
-					if(x_diff < 0){//to west
-						steeringDirection(MyAgentState.WEST);
+				int row_diff = undo_pair.getRow() - cur_pair.getRow();
+				if(row_diff != 0){
+					if(row_diff < 0){//to west
+						steeringDirection(MyAgentState.NORTH);
 					}else{
-						steeringDirection(MyAgentState.EAST);
+						steeringDirection(MyAgentState.SOUTH);
 					}
 				}else{
-					int y_diff = undo_pair.getCol() - cur_pair.getCol();
-					if(y_diff < 0){
-						steeringDirection(MyAgentState.NORTH);
+					int col_diff = undo_pair.getCol() - cur_pair.getCol();
+					if(col_diff < 0){
+						steeringDirection(MyAgentState.WEST);
 					}else {
-						steeringDirection(MyAgentState.SOUTH);
+						steeringDirection(MyAgentState.EAST);
 					}
 				}
 				cur_pair = stack.peek();
