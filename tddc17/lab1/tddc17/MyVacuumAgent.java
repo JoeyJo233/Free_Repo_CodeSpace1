@@ -259,7 +259,6 @@ class MyAgentProgram implements AgentProgram {
 				//Push into stack
 				cur_pair.setXY(state.agent_x_position, state.agent_y_position);
 				stack.push(cur_pair);
-				state.updateWorld(cur_pair.getX(), cur_pair.getY(), state.HOME);
 				state.initialized = true;
 				return LIUVacuumEnvironment.ACTION_SUCK;
 			}
