@@ -45,11 +45,14 @@ class MyAgentState
 //		world[1][1] = HOME;
 		agent_last_action = ACTION_NONE;
 	}
+		agent_y_position = 1;
+		agent_direction = EAST;
+		initialized = false;
+	}
 	// Based on the last action and the received percept updates the x & y agent position
 	public void updatePosition(DynamicPercept p)//todo: does this operation synced with Pacman actions?
 	{
 		Boolean bump = (Boolean)p.getAttribute("bump");
-
 
 		if (agent_last_action==ACTION_MOVE_FORWARD && !bump)// agent move forward and doesn't bump into obstacles
 	    {
@@ -81,28 +84,20 @@ class MyAgentState
 		// -3 out of boundary
 		world[y_position][x_position] = info;
 	}
-	
-	public void printWorldDebug()
-	{
-		System.out.printf("@Now: %d,%d @@@\n",agent_x_position, agent_y_position);
-		for (int i=0; i < world.length; i++)
-		{
-			for (int j=0; j < world.length ; j++)
-			{
-				if (world[i][j]==UNKNOWN)
-					System.out.print(" ? ");
-				if (world[i][j]==WALL)
-					System.out.print(" # ");
 				if (world[i][j]==CLEAR)
-					System.out.print(" . ");
 				if (world[i][j]==DIRT)
 					System.out.print(" * ");
-				if (world[i][j]==HOME)
-					System.out.print(" H ");
+
+	public void printWorldDebug() {
+                    case UNKNOWN -> System.out.print(" ? ");
+                    case WALL -> System.out.print(" # ");
+                    case CLEAR -> System.out.print(" . ");
+                }
 			}
 			System.out.println();
 		}
 	}
+
 	public static boolean xIsValid(int x){
 		return (0 <= x && x < WIDTH);
 	}
@@ -211,30 +206,47 @@ class MyAgentProgram implements AgentProgram {
 		state.updatePosition(percept);
 		if(action==0) {
 		    state.agent_direction = ((state.agent_direction+1) % 4);
-		    if (state.agent_direction<0)
 		    	state.agent_direction +=4;
 		    state.agent_last_action = state.ACTION_TURN_LEFT;
+			if (state.agent_direction<0) {
+				state.agent_direction +=4;
+			}
+			state.agent_last_action = state.ACTION_TURN_LEFT;
 			return LIUVacuumEnvironment.ACTION_TURN_LEFT;
 		} else if (action==1) {
 			state.agent_direction = ((state.agent_direction + 4 -1) % 4);
-		    state.agent_last_action = state.ACTION_TURN_RIGHT;
-		    return LIUVacuumEnvironment.ACTION_TURN_RIGHT;
+			state.agent_last_action = state.ACTION_TURN_RIGHT;
+			return LIUVacuumEnvironment.ACTION_TURN_RIGHT;
 		}
 		state.agent_last_action=state.ACTION_MOVE_FORWARD;
 		return LIUVacuumEnvironment.ACTION_MOVE_FORWARD;
 	}
+
 	public void stackPrint() {
 		System.out.println("Stack Contents:");
 		for (Pair pair : stack) {
 			System.out.println("(" + pair.getX() + ", " + pair.getY() + ")");
 		}
 	}
-	
+	public void reset(){
+		stack.clear();
+		initialRandomActions = 10;
+	}
+	void nextStepIsValid(Stack<Pair> stack){
+		return ;
+	}
 	
 	@Override
 	public Action execute(Percept percept) {
 		//step 0: check initialization
 		state.printWorldDebug();
+		System.out.printf("@@@@@Now: (%d, %d):  %d\n",state.agent_x_position, state.agent_y_position, state.agent_direction);
+		DynamicPercept p = (DynamicPercept) percept;
+		Boolean bump = (Boolean)p.getAttribute("bump");//1: bump into something
+		Boolean dirt = (Boolean)p.getAttribute("dirt");
+		Boolean home = (Boolean)p.getAttribute("home");
+		System.out.println("perception : " + p);
+
 		if(!state.initialized){
 			// DO NOT REMOVE this if condition!!!
 			if (initialRandomActions >0) {
@@ -256,29 +268,19 @@ class MyAgentProgram implements AgentProgram {
 			}
 		}
 
-    	// This example agent program will update the internal agent state while only moving forward.
-    	// todo: START HERE - code below should be modified!
-//		state.printWorldDebug();
-
-//    	System.out.println("x=" + state.agent_x_position);
-//    	System.out.println("y=" + state.agent_y_position);
-//    	System.out.println("dir=" + state.agent_direction);
-
+		// This example agent program will update the internal agent state while only moving forward.
+		// todo: START HERE - code below should be modified!
+		state.printWorldDebug();
 		if(iterationCounter > 1){//continuously change direction
 			iterationCounter--;
 			return myAction;
 		}else if(iterationCounter == 1) {//pass the perception test: move forward
-			iterationCounter--;
+			iterationCounter--;//single turning operation has been done after the cell Pacman facing at is pushed into stack
 			myAction = ACTION_MOVE_FORWARD;
 			return myAction;
 		}
 
 
-	    DynamicPercept p = (DynamicPercept) percept;
-	    Boolean bump = (Boolean)p.getAttribute("bump");//1: bump into something
-	    Boolean dirt = (Boolean)p.getAttribute("dirt");
-	    Boolean home = (Boolean)p.getAttribute("home");
-	    System.out.println("perception : " + p);
 
 
 	    // State update based on the perception value and the last action
@@ -333,9 +335,8 @@ class MyAgentProgram implements AgentProgram {
 			//set as clear, move forward
 		}
 
-//	    state.printWorldDebug();
 		stackPrint();
-		//BFS here, modeling a map
+		//DFS here, modeling a map
 		if (!stack.isEmpty()){
 			cur_pair = stack.peek();
 			//Traveling order: North->East->South->West
@@ -392,6 +393,8 @@ class MyAgentProgram implements AgentProgram {
 					}
 					else{
 						System.out.println("COMPLETED HERE!");
+						this.reset();
+						state.reset();
 						return NoOpAction.NO_OP;
 					}
 				}
@@ -413,9 +416,6 @@ class MyAgentProgram implements AgentProgram {
 				}
 				cur_pair = stack.peek();
 			}
-		}else{
-			System.out.println("COMPLETED!");
-			return NoOpAction.NO_OP;//DFS
 		}
 		return myAction;
 	}
