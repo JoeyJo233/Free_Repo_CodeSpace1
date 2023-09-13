@@ -42,9 +42,13 @@ class MyAgentState
 	MyAgentState()
 	{
         for (int[] ints : world) Arrays.fill(ints, UNKNOWN);
-//		world[1][1] = HOME;
+		world[1][1] = HOME;
 		agent_last_action = ACTION_NONE;
 	}
+	public void reset(){
+		for (int[] ints : world) Arrays.fill(ints, UNKNOWN);
+		agent_last_action = ACTION_NONE;
+		agent_x_position = 1;
 		agent_y_position = 1;
 		agent_direction = EAST;
 		initialized = false;
@@ -58,25 +62,19 @@ class MyAgentState
 	    {
             switch (agent_direction) {
                 case MyAgentState.NORTH -> {
-//					if(MyAgentState.xIsValid(agent_x_position - 1))
 						agent_x_position--;
 				}
                 case MyAgentState.EAST -> {
-//					if(MyAgentState.yIsValid(agent_y_position + 1))
 						agent_y_position++;
 				}
                 case MyAgentState.SOUTH ->{
-//					if(MyAgentState.xIsValid(agent_x_position +1))
 						agent_x_position++;
 				}
                 case MyAgentState.WEST -> {
-//					if(MyAgentState.yIsValid(agent_y_position - 1))
 						agent_y_position--;
 				}
             }
 	    }
-		//if p = home && finished
-		
 	}
 	
 	public void updateWorld(int x_position, int y_position, int info)
@@ -84,14 +82,16 @@ class MyAgentState
 		// -3 out of boundary
 		world[y_position][x_position] = info;
 	}
-				if (world[i][j]==CLEAR)
-				if (world[i][j]==DIRT)
-					System.out.print(" * ");
 
 	public void printWorldDebug() {
+		for (int[] row : world) {
+			for (int cell : row) {
+                switch (cell) {
                     case UNKNOWN -> System.out.print(" ? ");
                     case WALL -> System.out.print(" # ");
                     case CLEAR -> System.out.print(" . ");
+                    case DIRT -> System.out.print(" * ");
+                    case HOME -> System.out.print(" H ");
                 }
 			}
 			System.out.println();
@@ -205,9 +205,7 @@ class MyAgentProgram implements AgentProgram {
 		initialRandomActions--;
 		state.updatePosition(percept);
 		if(action==0) {
-		    state.agent_direction = ((state.agent_direction+1) % 4);
-		    	state.agent_direction +=4;
-		    state.agent_last_action = state.ACTION_TURN_LEFT;
+			state.agent_direction = ((state.agent_direction+1) % 4);
 			if (state.agent_direction<0) {
 				state.agent_direction +=4;
 			}
@@ -239,7 +237,6 @@ class MyAgentProgram implements AgentProgram {
 	@Override
 	public Action execute(Percept percept) {
 		//step 0: check initialization
-		state.printWorldDebug();
 		System.out.printf("@@@@@Now: (%d, %d):  %d\n",state.agent_x_position, state.agent_y_position, state.agent_direction);
 		DynamicPercept p = (DynamicPercept) percept;
 		Boolean bump = (Boolean)p.getAttribute("bump");//1: bump into something
