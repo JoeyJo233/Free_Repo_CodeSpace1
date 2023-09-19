@@ -53,8 +53,8 @@ class MyAgentState
 		agent_direction = EAST;
 		initialized = false;
 	}
-	// Based on the last action and the received percept updates the x & y agent position
-	public void updatePosition(DynamicPercept p)//todo: does this operation synced with Pacman actions?
+	// Based on the last action and the received percept updates the row and col agent position
+	public void updatePosition(DynamicPercept p)//Position update is preliminary step to Pacman action
 	{
 		Boolean bump = (Boolean)p.getAttribute("bump");
 
@@ -98,10 +98,6 @@ class MyAgentState
 		}
 	}
 
-	public static boolean rowIsValid(int row_idx){
-		return (0 <= row_idx && row_idx < WIDTH);
-	}
-	public static boolean colIsValid(int col_idx){ return (0 <= col_idx && col_idx < HEIGHT);}
 	public static boolean rowColIsValid(int row_idx, int col_idx){
 		return (0 <= row_idx && row_idx < WIDTH) && (0 <= col_idx && col_idx < HEIGHT);
 	}
@@ -116,6 +112,10 @@ class MyAgentState
 }
 
 class MyAgentProgram implements AgentProgram {
+
+	/*
+	self-defined class for 2D data structure
+	 */
 	public static class Pair implements Comparable<Pair>{
 		private int row;
 		private int col;
@@ -159,31 +159,53 @@ class MyAgentProgram implements AgentProgram {
 			}
 			return Integer.compare(this.col, other.col);
 		}
+
+		@Override
+		public String toString() {
+			return "{" + row + ", " + col + '}';
+		}
 	}
 
 
 
-	private int initialRandomActions = 5;
+
+	/*
+	* ====================== Variables ========================================
+	**/
+
+	private int initialRandomActions = 10;
 	private Random random_generator = new Random();
 	
-	//todo: Here you can define your variables!
 	private TreeMap<Pair, Boolean> barriers = new TreeMap<>();//store the x,y of barriers
 	private TreeMap<Pair, Boolean> dust = new TreeMap<>();//store the xy of dirt
-	private Stack<Pair> stack = new Stack<>();
-	private Pair cur_pair = new Pair();
+	private Stack<Pair> stack = new Stack<>();//to track the pacman footsteps
+	private Queue<Pair> path_queue = new LinkedList<>();//to note down the path from start point to HOME
+	private boolean going_home = false;//switch value for going home
+	private boolean hasPath = false;//switch value for opening noting down path
+	private Pair cur_pair = new Pair();//repeatedly used for get current position
 	public static Action ACTION_TURN_LEFT = LIUVacuumEnvironment.ACTION_TURN_LEFT;
 	public static Action ACTION_TURN_RIGHT = LIUVacuumEnvironment.ACTION_TURN_RIGHT;
 	public static Action ACTION_MOVE_FORWARD = LIUVacuumEnvironment.ACTION_MOVE_FORWARD;
 	public static Action ACTION_SUCK = LIUVacuumEnvironment.ACTION_SUCK;
-	Action myAction;
+	Action myAction; //unify the return variable
 	public int iterationCounter = 0;//for counting continuously steering direction steps
 	public MyAgentState state = new MyAgentState();
+
+
+	/*
+	============================= Functions =========================================ß
+	 */
+	/*
+	@steeringDirection function help Pacman steer direction and set iteratorCounter for sequentially turning actions
+	Also, each end of the turning always has a moving forward action unconditionally.
+	If bumps into a wall, update the word map. Otherwise, just plainly move forward.
+	 */
 	private void steeringDirection(int dir){
 		int formerDirection = state.agent_direction;
 		state.agent_direction = dir;
 		iterationCounter = formerDirection - state.agent_direction;
 		if(Math.abs(iterationCounter) > 2){
-			iterationCounter = iterationCounter > 0 ? iterationCounter - 4 : iterationCounter + 4;
+			iterationCounter = iterationCounter > 0 ? iterationCounter - 4 : iterationCounter + 4;//modulus
 		}
 		if(iterationCounter < 0 ){
 			myAction = ACTION_TURN_LEFT;
@@ -219,26 +241,28 @@ class MyAgentProgram implements AgentProgram {
 		return LIUVacuumEnvironment.ACTION_MOVE_FORWARD;
 	}
 
-	public void stackPrint() {
-		System.out.println("Stack Contents:");
-		for (Pair pair : stack) {
-			System.out.println("(" + pair.getRow() + ", " + pair.getCol() + ")");
+
+	public void containerPrint(Collection<?> collection) {
+		System.out.println("Collection Contents:");
+		for (Object item : collection) {
+			System.out.print(item + " ");
 		}
+		System.out.println();
 	}
 	public void reset(){
 		stack.clear();
 		initialRandomActions = 10;
 	}
-	void nextStepIsValid(Stack<Pair> stack){
-		return ;
-	}
+
+
+
 	
 	@Override
 	public Action execute(Percept percept) {
 		//step 0: check initialization
 		System.out.printf("@@@@@Now: (%d, %d):  %d\n",state.agent_row_idx, state.agent_col_idx, state.agent_direction);
 		DynamicPercept p = (DynamicPercept) percept;
-		Boolean bump = (Boolean)p.getAttribute("bump");//1: bump into something
+		Boolean bump = (Boolean)p.getAttribute("bump");
 		Boolean dirt = (Boolean)p.getAttribute("dirt");
 		Boolean home = (Boolean)p.getAttribute("home");
 		System.out.println("perception : " + p);
@@ -246,6 +270,7 @@ class MyAgentProgram implements AgentProgram {
 		if(!state.initialized){
 			// DO NOT REMOVE this if condition!!!
 			if (initialRandomActions >0) {
+				System.out.println("############initializing...###########################");
 				return moveToRandomStartPosition((DynamicPercept) percept);
 			} else if (initialRandomActions ==0) {
 				//process perception for the last step of the initial random actions
@@ -263,9 +288,9 @@ class MyAgentProgram implements AgentProgram {
 			}
 		}
 
-		// This example agent program will update the internal agent state while only moving forward.
-		// todo: START HERE - code below should be modified!
 		state.printWorldDebug();
+
+		//===============================Continuously Turning==========================================================
 		if(iterationCounter > 1){//continuously change direction
 			iterationCounter--;
 			return myAction;
@@ -275,13 +300,35 @@ class MyAgentProgram implements AgentProgram {
 			return myAction;
 		}
 
+		//================================Going Home====================================================================
+		if(going_home){
+			cur_pair = path_queue.poll();
+			if(!path_queue.isEmpty()){
+				Pair next_pair = path_queue.peek();
+				int row_diff = next_pair.getRow() - cur_pair.getRow();
+				int col_diff = next_pair.getCol() - cur_pair.getCol();
+				if(row_diff > 0){//go to south
+					steeringDirection(MyAgentState.SOUTH);
+				}else if(row_diff < 0){//go to north
+					steeringDirection(MyAgentState.NORTH);
+				}else if(col_diff > 0){//go to east
+					steeringDirection(MyAgentState.EAST);
+				}else if(col_diff < 0){//go to west
+					steeringDirection(MyAgentState.WEST);
+				}
+				return myAction;
+			}else{
+				going_home = false;
+				return NoOpAction.NO_OP;
+			}
+		}
 
 
-
+		//================================About Perception==============================================================
 	    // State update based on the perception value and the last action
 		// Update current position status
 	    if (bump) {//bump in the wall
-			switch (state.agent_direction) {//todo: do we need to steer directions?
+			switch (state.agent_direction) {
 				case MyAgentState.NORTH -> {
 					state.updateWorld(cur_pair.getNorth().getRow(), cur_pair.getNorth().getCol(), state.WALL);
 				}
@@ -307,12 +354,9 @@ class MyAgentProgram implements AgentProgram {
 			if(!stack.isEmpty()){
 				cur_pair = stack.peek();
 			}
-//			cur_pair.setXY(state.agent_x_position, state.agent_y_position);
 			state.updateWorld(cur_pair.getRow(), cur_pair.getCol(), state.CLEAR);//set as dirt
 			dust.put(cur_pair, Boolean.TRUE);
-			//dirt action
 			System.out.println("DIRT -> choosing SUCK action!");
-
 			myAction = ACTION_SUCK;
 			return myAction;
 		}else{//CLEAR || HOME || UNKNOWN
@@ -330,13 +374,17 @@ class MyAgentProgram implements AgentProgram {
 			//set as clear, move forward
 		}
 
-		stackPrint();
-		//DFS here, modeling a map
+
+		//===========================================DFS here=========================================================
 		if (!stack.isEmpty()){
 			cur_pair = stack.peek();
+			if(cur_pair.getRow() == 1 && cur_pair.getCol() == 1 && !hasPath){
+				path_queue.addAll(stack);
+				hasPath = true;
+			}
 			//Traveling order: North->East->South->West
 
-			//todo: turning direction of Pacman, some of situation don't need to change direction, but some need
+			// turning direction of Pacman, some of situation don't need to change direction, but some need
 			if ((state.getState(cur_pair.getNorth().getRow(), cur_pair.getNorth().getCol()) == state.UNKNOWN)
 					){
 				steeringDirection(MyAgentState.NORTH);
@@ -388,9 +436,9 @@ class MyAgentProgram implements AgentProgram {
 					}
 					else{
 						System.out.println("COMPLETED HERE!");
-						this.reset();
-						state.reset();
-						return NoOpAction.NO_OP;
+						going_home = true;
+						myAction = ACTION_SUCK;
+						return myAction;
 					}
 				}
 				Pair undo_pair = stack.peek();
