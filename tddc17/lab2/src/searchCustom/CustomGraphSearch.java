@@ -15,7 +15,8 @@ public class CustomGraphSearch implements SearchObject {
 	private HashSet<SearchNode> explored;
 	private NodeQueue frontier;
 	protected ArrayList<SearchNode> path;
-	private boolean insertFront;
+	private boolean insertFront;//true for DFS, false for BFS. Only remove the first element for removing action.
+	//The difference is at the node adding action, whether add to the front or back of the queue.
 
 	/**
 	 * The constructor tells graph search whether it should insert nodes to front or back of the frontier 
@@ -42,8 +43,7 @@ public class CustomGraphSearch implements SearchObject {
 		
 		// Implement this!
 		System.out.println("Implement CustomGraphSearch.java!");
-		
-		
+		System.out.println("@@@insertFront: " + insertFront);
 		/* Some hints:
 		 * -Read early part of chapter 3 in the book!
 		 * -You are free to change anything how you wish as long as the program runs, but some structure is given to help you.
@@ -67,6 +67,42 @@ public class CustomGraphSearch implements SearchObject {
 		 * 
 		 *  When the goal is found, the path to be returned can be found by: path = node.getPathFromRoot();
 		 */
+
+		//Code starts here
+		if(insertFront){//DFS, insert front, remove first
+			while(!frontier.isEmpty()){
+				SearchNode currentNode = frontier.removeFirst();
+				explored.add(currentNode);
+				if(p.isGoalState(currentNode.getState())){
+					path = currentNode.getPathFromRoot();
+					break;
+				}
+				ArrayList<GridPos> childStates = p.getReachableStatesFrom(currentNode.getState());
+				for(GridPos childState : childStates){
+					SearchNode childNode = new SearchNode(childState, currentNode);
+					if(!explored.contains(childNode) && !frontier.contains(childNode)){
+						frontier.addNodeToFront(childNode);
+					}
+				}
+			}
+		}else{//BFS, insert back, remove first
+			while(!frontier.isEmpty()){
+				SearchNode currentNode = frontier.removeFirst();
+				explored.add(currentNode);
+				if(p.isGoalState(currentNode.getState())){
+					path = currentNode.getPathFromRoot();
+					break;
+				}
+				ArrayList<GridPos> childStates = p.getReachableStatesFrom(currentNode.getState());
+				for(GridPos childState : childStates){
+					SearchNode childNode = new SearchNode(childState, currentNode);
+					if(!explored.contains(childNode) && !frontier.contains(childNode)){
+						frontier.addNodeToBack(childNode);
+					}
+				}
+			}
+
+		}
 		/* Note: Returning an empty path signals that no path exists */
 		return path;
 	}

@@ -347,105 +347,98 @@ public class Agent {
         GridSearchProblem myProblem = null;
 
         switch (method) {
-            case BREADTH_FIRST_SEARCH :
-                {
-                    if (printResult)
-                        System.out.println("Agent: starting Breath First Search Method (BFS)");
-                    BreadthFirstSearch breadthSearchRun = new BreadthFirstSearch(MAX_DEPTH);
-                    time = (new Date()).getTime();
-                    myProblem = new GridSearchProblem(world, start, goal);
-                    ArrayList breadthPlan = breadthSearchRun.search(myProblem);
-                    time -= (new Date()).getTime();
-                    if (printResult)
-                        System.out.println(
+            case BREADTH_FIRST_SEARCH -> {
+                if (printResult)
+                    System.out.println("Agent: starting Breath First Search Method (BFS)");
+                BreadthFirstSearch breadthSearchRun = new BreadthFirstSearch(MAX_DEPTH);
+                time = (new Date()).getTime();
+                myProblem = new GridSearchProblem(world, start, goal);
+                ArrayList breadthPlan = breadthSearchRun.search(myProblem);
+                time -= (new Date()).getTime();
+                if (printResult)
+                    System.out.println(
                             "\tNeeded "
-                                + (-time)
-                                + " msec, PathLength:  "
-                                + breadthPlan.size()
-                                + ", NumExpNodes: "
-                                + myProblem.getNumExpandedNodes());
-                    return breadthSearchRun;
-                }
-            case DEPTH_FIRST_SEARCH :
-                {
-                    if (printResult)
-                        System.out.println("Agent: starting Depth First Search Method (DFS)");
-                    DepthFirstSearch depthSearchRun = new DepthFirstSearch(MAX_DEPTH);
-                    time = (new Date()).getTime();
-                    myProblem = new GridSearchProblem(world, start, goal);
-                    ArrayList depthPlan = depthSearchRun.search(myProblem);
-                    time -= (new Date()).getTime();
-                    if (printResult)
-                        System.out.println("\tNeeded " + (-time) + " msec, PathLength: " + depthPlan.size());
-                    return depthSearchRun;
-                }
-            case ITERATIVE_DEEPENING_SEARCH :
-                {
-                    if (printResult)
-                        System.out.println("Agent: starting Iterative Deepening Search Method (IDS)");
-                    IterativeDepthFirstSearch iterativeDeepeningRun = new IterativeDepthFirstSearch(MAX_DEPTH);
-                    time = (new Date()).getTime();
-                    myProblem = new GridSearchProblem(world, start, goal);
-                    ArrayList deepeningPlan = iterativeDeepeningRun.search(myProblem);
-                    time -= (new Date()).getTime();
-                    if (printResult)
-                        System.out.println("\tNeeded " + (-time) + " msec, PathLength:  " + deepeningPlan.size());
-                    return iterativeDeepeningRun;
-                }
-            case ASTAR_SEARCH :
-                {
-                    if (printResult)
-                        System.out.println("Agent: starting AStar Search Method");
-                    GridHeuristicOrdering heuristic = new GridHeuristicOrdering();
-                    heuristic.setGoalState(goal);
-                    AStarSearch aStarSearchRun = new AStarSearch(MAX_DEPTH, heuristic);
-                    time = (new Date()).getTime();
-                    myProblem = new GridSearchProblem(world, start, goal);
-                    ArrayList astarPlan = aStarSearchRun.search(myProblem);
-                    time -= (new Date()).getTime();
-                    if (printResult)
-                        System.out.println(
+                                    + (-time)
+                                    + " msec, PathLength:  "
+                                    + breadthPlan.size()
+                                    + ", NumExpNodes: "
+                                    + myProblem.getNumExpandedNodes());
+                return breadthSearchRun;
+            }
+            case DEPTH_FIRST_SEARCH -> {
+                if (printResult)
+                    System.out.println("Agent: starting Depth First Search Method (DFS)");
+                DepthFirstSearch depthSearchRun = new DepthFirstSearch(MAX_DEPTH);
+                time = (new Date()).getTime();
+                myProblem = new GridSearchProblem(world, start, goal);
+                ArrayList depthPlan = depthSearchRun.search(myProblem);
+                time -= (new Date()).getTime();
+                if (printResult)
+                    System.out.println("\tNeeded " + (-time) + " msec, PathLength: " + depthPlan.size());
+                return depthSearchRun;
+            }
+            case ITERATIVE_DEEPENING_SEARCH -> {
+                if (printResult)
+                    System.out.println("Agent: starting Iterative Deepening Search Method (IDS)");
+                IterativeDepthFirstSearch iterativeDeepeningRun = new IterativeDepthFirstSearch(MAX_DEPTH);
+                time = (new Date()).getTime();
+                myProblem = new GridSearchProblem(world, start, goal);
+                ArrayList deepeningPlan = iterativeDeepeningRun.search(myProblem);
+                time -= (new Date()).getTime();
+                if (printResult)
+                    System.out.println("\tNeeded " + (-time) + " msec, PathLength:  " + deepeningPlan.size());
+                return iterativeDeepeningRun;
+            }
+            case ASTAR_SEARCH -> {
+                if (printResult)
+                    System.out.println("Agent: starting AStar Search Method");
+                GridHeuristicOrdering heuristic = new GridHeuristicOrdering();
+                heuristic.setGoalState(goal);
+                AStarSearch aStarSearchRun = new AStarSearch(MAX_DEPTH, heuristic);
+                time = (new Date()).getTime();
+                myProblem = new GridSearchProblem(world, start, goal);
+                ArrayList astarPlan = aStarSearchRun.search(myProblem);
+                time -= (new Date()).getTime();
+                if (printResult)
+                    System.out.println(
                             "\tNeeded "
-                                + (-time)
-                                + " msec , PathLength: "
-                                + astarPlan.size()
-                                + ", NumExpNodes: "
-                                + myProblem.getNumExpandedNodes());
-                    return aStarSearchRun;
-                }
-            case CUSTOM_BREADTH_FIRST_SEARCH :
-            {
-            	if (printResult)
-            		System.out.println("Agent: starting Breath First Search Method (BFS)");
-            	CustomBreadthFirstSearch cBreadthSearchRun = new CustomBreadthFirstSearch(MAX_DEPTH);
-            	time = (new Date()).getTime();
-            	myProblem = new GridSearchProblem(world, start, goal);
-            	ArrayList breadthPlan = cBreadthSearchRun.search(myProblem);
-            	time -= (new Date()).getTime();
-            	if (printResult)
-            		System.out.println(
-            				"\tNeeded "
-            						+ (-time)
-            						+ " msec, PathLength:  "
-            						+ breadthPlan.size()
-            						+ ", NumExpNodes: "
-            						+ myProblem.getNumExpandedNodes());
-            	return cBreadthSearchRun;
+                                    + (-time)
+                                    + " msec , PathLength: "
+                                    + astarPlan.size()
+                                    + ", NumExpNodes: "
+                                    + myProblem.getNumExpandedNodes());
+                return aStarSearchRun;
             }
-            case CUSTOM_DEPTH_FIRST_SEARCH :
-            {
-            	if (printResult)
-            		System.out.println("Agent: starting Depth First Search Method (DFS)");
-            	CustomDepthFirstSearch cDepthSearchRun = new CustomDepthFirstSearch(MAX_DEPTH);
-            	time = (new Date()).getTime();
-            	myProblem = new GridSearchProblem(world, start, goal);
-            	ArrayList depthPlan = cDepthSearchRun.search(myProblem);
-            	time -= (new Date()).getTime();
-            	if (printResult)
-            		System.out.println("\tNeeded " + (-time) + " msec, PathLength: " + depthPlan.size());
-            	return cDepthSearchRun;
+            case CUSTOM_BREADTH_FIRST_SEARCH -> {
+                if (printResult)
+                    System.out.println("Agent: starting Breath First Search Method (BFS)");
+                CustomBreadthFirstSearch cBreadthSearchRun = new CustomBreadthFirstSearch(MAX_DEPTH);
+                time = (new Date()).getTime();
+                myProblem = new GridSearchProblem(world, start, goal);
+                ArrayList breadthPlan = cBreadthSearchRun.search(myProblem);
+                time -= (new Date()).getTime();
+                if (printResult)
+                    System.out.println(
+                            "\tNeeded "
+                                    + (-time)
+                                    + " msec, PathLength:  "
+                                    + breadthPlan.size()
+                                    + ", NumExpNodes: "
+                                    + myProblem.getNumExpandedNodes());
+                return cBreadthSearchRun;
             }
-
+            case CUSTOM_DEPTH_FIRST_SEARCH -> {
+                if (printResult)
+                    System.out.println("Agent: starting Depth First Search Method (DFS)");
+                CustomDepthFirstSearch cDepthSearchRun = new CustomDepthFirstSearch(MAX_DEPTH);
+                time = (new Date()).getTime();
+                myProblem = new GridSearchProblem(world, start, goal);
+                ArrayList depthPlan = cDepthSearchRun.search(myProblem);
+                time -= (new Date()).getTime();
+                if (printResult)
+                    System.out.println("\tNeeded " + (-time) + " msec, PathLength: " + depthPlan.size());
+                return cDepthSearchRun;
+            }
         }
         System.err.println("Agent: Unknown Search Method selected!");
         return null;
