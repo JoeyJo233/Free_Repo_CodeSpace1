@@ -157,7 +157,7 @@ int correctiveAction = -1; // Default, -1 means no action.
 		iteration++;
 		
 		if (!paused) {
-			String new_state = StateAndReward.getStateHover(angle.getValue(), x.getValue(), y.getValue(), vy.getValue());
+			String new_state = StateAndReward.getStateHover(angle.getValue(), vx.getValue(), vy.getValue());
 
 	        // Boundary checks
 			if (y.getValue() <= minY || y.getValue() >= maxY || x.getValue() <= minX || x.getValue() >= maxX) {
@@ -173,7 +173,7 @@ int correctiveAction = -1; // Default, -1 means no action.
 			if (new_state.equals(previous_state) && action_counter < REPEAT_ACTION_MAX) {
 				return;
 			}
-			double previous_reward = StateAndReward.getRewardHover(previous_angle, previous_x, previous_y, previous_vy);
+			double previous_reward = StateAndReward.getRewardHover(previous_angle, previous_vx, previous_vy);
 
 			action_counter = 0;
 

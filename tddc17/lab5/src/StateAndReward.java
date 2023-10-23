@@ -24,34 +24,26 @@ public class StateAndReward {
 	
 
 	/* State discretization function for the full hover controller */
-	public static String getStateHover(double angle, double vx, double vy, double y) {
+	public static String getStateHover(double angle, double vx, double vy) {
 		int discreteAngle = discretize(angle, 20, -Math.PI, Math.PI);
 		int discreteVx = discretize(vx, 5, -1, 1);
 		int discreteVy = discretize(vy, 5, -1, 1);
-		int discreteY = discretize(y, 10, -2115.89, 1197.83); // Based on the provided minY and maxY
 		
-		return "HoverState_" + discreteAngle + "_" + discreteVx + "_" + discreteVy + "_" + discreteY;
+		return "HoverState_" + discreteAngle + "_" + discreteVx + "_" + discreteVy;
 	}
 	
 	
 
 	/* Reward function for the full hover controller */
-	public static double getRewardHover(double angle, double vx, double vy, double y) {
-		double anglePenalty = (Math.abs(angle) > 2.8) ? 1 : Math.abs(angle) / Math.PI;
-		double vyPenalty = Math.abs(vy);
-		double vxPenalty = Math.abs(vx);
-		
-		double proximityToGroundReward = (y < -2000 && y > -2115) ? (1 - Math.abs(y + 2115) / 115) : 0; // Reward is higher when closer to -2115 (but not below it)
-		
-		// Heavy penalty if the rocket is upside down and near the ground (indicating a potential crash scenario)
-		double flipOverPenalty = (angle > 2.8 || angle < -2.8) && y < -2000 ? -5 : 0;
-		
-		double reward = 1 + proximityToGroundReward - anglePenalty - vyPenalty - vxPenalty + flipOverPenalty;
+	public static double getRewardHover(double angle, double vx, double vy) {
+		double anglePenalty = Math.abs(angle) / Math.PI;  // Assuming max angle deviation is 50°.
+		double vyPenalty = Math.abs(vy);               // Penalizing based on the vertical speed.
+		double vxPenalty = Math.abs(vx);               // Penalizing based on the horizontal speed.
+	
+		double reward = 1 - anglePenalty - vyPenalty - vxPenalty; // Maximum reward is 1 when rocket is perfectly hovering.
 		
 		return reward;
 	}
-	
-	
 	
 
 	// ///////////////////////////////////////////////////////////
