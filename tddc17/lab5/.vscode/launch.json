@@ -1,0 +1,33 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Run QLearning",
+            "request": "launch",
+            "mainClass": "Main",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "-filepath", "./files/",
+                "-startfile", "./qlearning_level.xml"
+            ],
+            "classpath": [
+                "${workspaceFolder}/lib/rllab.jar"
+            ]
+        },
+        {
+            "type": "java",
+            "name": "Run Tutorial",
+            "request": "launch",
+            "mainClass": "Main",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "-filepath", "./files/",
+                "-startfile", "./tutorial_level.xml"
+            ],
+            "classpath": [
+                "${workspaceFolder}/lib/rllab.jar"
+            ]
+        }
+    ]
+}
