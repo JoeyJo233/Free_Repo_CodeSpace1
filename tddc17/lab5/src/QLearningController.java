@@ -32,7 +32,19 @@ public class QLearningController extends Controller {
 	double previous_vy = 0;
 	double previous_angle = 0;
 	int previous_action = 0; 
-	
+	double previous_x = 0;
+	double previous_y = 0;
+
+	//minX: -1638.353297044766 maxX: 3202.4366775615435 minY: -2115.8942650529275 maxY: 1197.829041678518 minAngle: -3.1410734732421792 maxAngle: 3.1415204812065234
+	final static double minX = -1638.353297044766;
+	final static double maxX = 3202.4366775615435;
+	final static double minY = -2115.8942650529275;
+	final static double maxY = 1197.829041678518;
+
+	boolean correctingAngle = false;
+int correctiveAction = -1; // Default, -1 means no action.
+
+
 	/* The tables used by Q-learning */
 	Hashtable<String, Double> Qtable = new Hashtable<String, Double>(); /* Contains the Q-values - the state-action utilities */
 	Hashtable<String, Integer> Ntable = new Hashtable<String, Integer>(); /* Keeps track of how many times each state-action combination has been used */
@@ -83,28 +95,86 @@ public class QLearningController extends Controller {
 	}
 
 	/* Performs the chosen action */
-	void performAction(int action) {
+	enum Action {
+		NO_ACTION(0),
+		LEFT_ENGINE(1),
+		RIGHT_ENGINE(2),
+		MIDDLE_ENGINE(3),
+		LEFT_MIDDLE_ENGINES(4),
+		RIGHT_MIDDLE_ENGINES(5),
+		ALL_ENGINES(6);
 
-		/* Fire zeh rockets! */
-		/* TODO: Remember to change NUM_ACTIONS constant to reflect the number of actions (including 0, no action) */
-		
-		/* TODO: IMPLEMENT THIS FUNCTION */
-		
+		private final int value;
+
+		Action(int value) {
+			this.value = value;
+		}
+
+		public int getValue() {
+			return value;
+		}
+		public int getValue(int value) {
+			return value;
+		}
+			
 	}
 
+	void performAction(Action action) {
+		resetRockets(); // First, turn off all rockets.
+		switch (action) {
+			case NO_ACTION: // No action, all rockets remain off.
+				break;
+			case LEFT_ENGINE:
+				leftEngine.setBursting(true);
+				break;
+			case RIGHT_ENGINE:
+				rightEngine.setBursting(true);
+				break;
+			case MIDDLE_ENGINE:
+				middleEngine.setBursting(true);
+				break;
+			case LEFT_MIDDLE_ENGINES:
+				leftEngine.setBursting(true);
+				middleEngine.setBursting(true);
+				break;
+			case RIGHT_MIDDLE_ENGINES:
+				rightEngine.setBursting(true);
+				middleEngine.setBursting(true);
+				break;
+			case ALL_ENGINES: // All engines on for faster acceleration.
+				leftEngine.setBursting(true);
+				rightEngine.setBursting(true);
+				middleEngine.setBursting(true);
+				break;
+			default: // Optional: Handle unexpected values.
+				System.out.println("Warning: Unknown action " + action);
+				break;
+		}
+	}
+	
 	/* Main decision loop. Called every iteration by the simulator */
 	public void tick(int currentTime) {
 		iteration++;
 		
 		if (!paused) {
-			String new_state = StateAndReward.getStateAngle(angle.getValue(), vx.getValue(), vy.getValue());
+			String new_state = StateAndReward.getStateHover(angle.getValue(), x.getValue(), y.getValue(), vy.getValue());
 
-			/* Repeat the chosen action for a while, hoping to reach a new state. This is a trick to speed up learning on this problem. */
+	        // Boundary checks
+			if (y.getValue() <= minY || y.getValue() >= maxY || x.getValue() <= minX || x.getValue() >= maxX) {
+				// Heavy penalties or corrective actions
+				resetRockets();
+				return;  // might want to stop the tick here or take other corrective measures
+			}
+			//todo: when the rocket is upside down, it should be penalized heavily, and influence the Q value
+			{
+
+			}
 			action_counter++;
 			if (new_state.equals(previous_state) && action_counter < REPEAT_ACTION_MAX) {
 				return;
 			}
-			double previous_reward = StateAndReward.getRewardAngle(previous_angle, previous_vx, previous_vy);
+			double previous_reward = StateAndReward.getRewardHover(previous_angle, previous_x, previous_y, previous_vy);
+
 			action_counter = 0;
 
 			/* The agent is in a new state, do learning and action selection */
@@ -124,18 +194,26 @@ public class QLearningController extends Controller {
 				} 
 
 				
+				int action = selectAction(new_state); /* Make sure you understand how it selects an action */
 				/* TODO: IMPLEMENT Q-UPDATE HERE! */
 				
 				/* See top for constants and below for helper functions */
-				
-				
-				int action = selectAction(new_state); /* Make sure you understand how it selects an action */
 
-				performAction(action);
+				
+
+
+			    String current_stateaction = new_state + action;
+	            double alpha = alpha(Ntable.getOrDefault(prev_stateaction, 0));
+	            double oldQ = Qtable.getOrDefault(prev_stateaction, 0.0);
+	            double maxQ = getMaxActionQValue(new_state);
+	            double newQ = (1 - alpha) * oldQ + alpha * (previous_reward + GAMMA_DISCOUNT_FACTOR * maxQ);
+	            Qtable.put(prev_stateaction, newQ);
+
+				performAction(Action.values()[action]);
 				
 				/* Only print every 10th line to reduce spam */
 				print_counter++;
-				if (print_counter % 10 == 0) {
+				if (print_counter % 10000 == 0) {
 					System.out.println("ITERATION: " + iteration + " SENSORS: a=" + df.format(angle.getValue()) + " vx=" + df.format(vx.getValue()) + 
 							" vy=" + df.format(vy.getValue()) + " P_STATE: " + previous_state + " P_ACTION: " + previous_action + 
 							" P_REWARD: " + df.format(previous_reward) + " P_QVAL: " + df.format(Qtable.get(prev_stateaction)) + " Tested: "
@@ -144,8 +222,12 @@ public class QLearningController extends Controller {
 				
 				previous_vy = vy.getValue();
 				previous_vx = vx.getValue();
+				previous_x = x.getValue();
+				previous_y = y.getValue();
 				previous_angle = angle.getValue();
 				previous_action = action;
+				previous_state = new_state;
+
 			}
 			previous_state = new_state;
 		}

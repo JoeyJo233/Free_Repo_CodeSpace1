@@ -5,41 +5,54 @@ public class StateAndReward {
 	public static String getStateAngle(double angle, double vx, double vy) {
 
 		/* TODO: IMPLEMENT THIS FUNCTION */
-
-		String state = "OneStateToRuleThemAll";
-		
-		return state;
+		int discreteAngle = discretize(angle, 20, -Math.PI, Math.PI); // Finer discretization over the full angular range.
+		return "AngleState_" + discreteAngle;
 	}
 
 	/* Reward function for the angle controller */
 	public static double getRewardAngle(double angle, double vx, double vy) {
-
-		/* TODO: IMPLEMENT THIS FUNCTION */
-		
 		double reward = 0;
-
+		if (Math.abs(angle) < 0.1) { // Close to upright
+			reward = 1;
+		} else if (Math.abs(angle) > 2.8) { // Close to being inverted
+			reward = -1; // Maximum penalty
+		} else {
+			reward = -1 * Math.abs(angle) / Math.PI; // Penalty proportional to deviation from upright
+		}
 		return reward;
 	}
+	
 
 	/* State discretization function for the full hover controller */
-	public static String getStateHover(double angle, double vx, double vy) {
-
-		/* TODO: IMPLEMENT THIS FUNCTION */
-
-		String state = "OneStateToRuleThemAll2";
+	public static String getStateHover(double angle, double vx, double vy, double y) {
+		int discreteAngle = discretize(angle, 20, -Math.PI, Math.PI);
+		int discreteVx = discretize(vx, 5, -1, 1);
+		int discreteVy = discretize(vy, 5, -1, 1);
+		int discreteY = discretize(y, 10, -2115.89, 1197.83); // Based on the provided minY and maxY
 		
-		return state;
+		return "HoverState_" + discreteAngle + "_" + discreteVx + "_" + discreteVy + "_" + discreteY;
 	}
+	
+	
 
 	/* Reward function for the full hover controller */
-	public static double getRewardHover(double angle, double vx, double vy) {
-
-		/* TODO: IMPLEMENT THIS FUNCTION */
+	public static double getRewardHover(double angle, double vx, double vy, double y) {
+		double anglePenalty = (Math.abs(angle) > 2.8) ? 1 : Math.abs(angle) / Math.PI;
+		double vyPenalty = Math.abs(vy);
+		double vxPenalty = Math.abs(vx);
 		
-		double reward = 0;
-
+		double proximityToGroundReward = (y < -2000 && y > -2115) ? (1 - Math.abs(y + 2115) / 115) : 0; // Reward is higher when closer to -2115 (but not below it)
+		
+		// Heavy penalty if the rocket is upside down and near the ground (indicating a potential crash scenario)
+		double flipOverPenalty = (angle > 2.8 || angle < -2.8) && y < -2000 ? -5 : 0;
+		
+		double reward = 1 + proximityToGroundReward - anglePenalty - vyPenalty - vxPenalty + flipOverPenalty;
+		
 		return reward;
 	}
+	
+	
+	
 
 	// ///////////////////////////////////////////////////////////
 	// discretize() performs a uniform discretization of the
