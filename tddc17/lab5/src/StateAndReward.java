@@ -12,38 +12,70 @@ public class StateAndReward {
 	/* Reward function for the angle controller */
 	public static double getRewardAngle(double angle, double vx, double vy) {
 		double reward = 0;
+	
 		if (Math.abs(angle) < 0.1) { // Close to upright
 			reward = 1;
 		} else if (Math.abs(angle) > 2.8) { // Close to being inverted
-			reward = -1; // Maximum penalty
+			// Assign an extremely large negative penalty
+			reward = -100; // You can adjust this value to represent an 'extremely large penalty'
 		} else {
-			reward = -1 * Math.abs(angle) / Math.PI; // Penalty proportional to deviation from upright
+			// Use an exponential function for penalty
+			// The base of the exponential can be adjusted according to how severe you want the penalty to be
+			reward = -Math.exp(Math.abs(angle) - 0.1);
 		}
+	
 		return reward;
 	}
+	
 	
 
 	/* State discretization function for the full hover controller */
 	public static String getStateHover(double angle, double vx, double vy) {
 		int discreteAngle = discretize(angle, 20, -Math.PI, Math.PI);
-		int discreteVx = discretize(vx, 5, -1, 1);
-		int discreteVy = discretize(vy, 5, -1, 1);
+		int discreteVx = discretize(vx, 10000, -50, 50);
+		int discreteVy = discretize(vy, 10000, -50, 50);
 		
 		return "HoverState_" + discreteAngle + "_" + discreteVx + "_" + discreteVy;
 	}
 	
 	
 
-	/* Reward function for the full hover controller */
-	public static double getRewardHover(double angle, double vx, double vy) {
-		double anglePenalty = Math.abs(angle) / Math.PI;  // Assuming max angle deviation is 50°.
-		double vyPenalty = Math.abs(vy);               // Penalizing based on the vertical speed.
-		double vxPenalty = Math.abs(vx);               // Penalizing based on the horizontal speed.
-	
-		double reward = 1 - anglePenalty - vyPenalty - vxPenalty; // Maximum reward is 1 when rocket is perfectly hovering.
+	public static double getRewardHover(double angle, double vx, double vy, double prevVx, double prevVy) {
+		double reward = 1; // Start with the maximum reward
 		
-		return reward;
+		// Apply a high penalty for any horizontal movement (vx not zero)
+		if (Math.abs(vx) > 0) {
+			reward -= Math.exp(Math.abs(vx)) - 1; // Exponential penalty for horizontal movement
+		}
+		
+		// Apply a penalty for vertical movement, more if vy is negative
+		if (vy < 0) {
+			reward -= Math.exp(Math.abs(vy)) - 1; // Higher penalty for downward movement
+		} else if (vy > 0) {
+			reward -= Math.abs(vy); // Lesser penalty for slight upward movement
+		}
+		
+		// Calculate accelerations
+		double ax = vx - prevVx; // Acceleration in horizontal direction
+		double ay = vy - prevVy; // Acceleration in vertical direction
+		
+		// Apply penalty based on acceleration
+		if (ay < 0 || ax != 0) {
+			reward -= Math.exp(Math.abs(ax) + Math.abs(ay)) - 1; // Exponential penalty for negative acceleration or any horizontal acceleration
+		}
+		
+		// Provide a recovery path when upside down
+		if (Math.abs(angle) > Math.PI / 2) { // Rocket is upside down
+			// Adjust the recovery reward based on how quickly the rocket is moving towards an upright position
+			double recoverySignal = Math.cos(angle); // This will be positive when the rocket is upright
+			reward += recoverySignal; // Encourage the rocket to get back to an upright position
+		}
+		
+		// Ensure that the reward does not become negative
+		return Math.max(0, reward);
 	}
+	
+	
 	
 
 	// ///////////////////////////////////////////////////////////

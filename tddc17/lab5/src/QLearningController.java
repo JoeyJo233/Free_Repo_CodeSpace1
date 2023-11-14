@@ -159,21 +159,11 @@ int correctiveAction = -1; // Default, -1 means no action.
 		if (!paused) {
 			String new_state = StateAndReward.getStateHover(angle.getValue(), vx.getValue(), vy.getValue());
 
-	        // Boundary checks
-			if (y.getValue() <= minY || y.getValue() >= maxY || x.getValue() <= minX || x.getValue() >= maxX) {
-				// Heavy penalties or corrective actions
-				resetRockets();
-				return;  // might want to stop the tick here or take other corrective measures
-			}
-			//todo: when the rocket is upside down, it should be penalized heavily, and influence the Q value
-			{
-
-			}
 			action_counter++;
 			if (new_state.equals(previous_state) && action_counter < REPEAT_ACTION_MAX) {
 				return;
 			}
-			double previous_reward = StateAndReward.getRewardHover(previous_angle, previous_vx, previous_vy);
+			double previous_reward = StateAndReward.getRewardHover(angle.getValue(), vx.getValue(), vy.getValue(), previous_vx, previous_vy );
 
 			action_counter = 0;
 
@@ -198,6 +188,14 @@ int correctiveAction = -1; // Default, -1 means no action.
 				/* TODO: IMPLEMENT Q-UPDATE HERE! */
 				
 				/* See top for constants and below for helper functions */
+				if (Math.abs(angle.getValue()) > 0.25 * Math.PI && Math.abs(angle.getValue()) < 0.75 * Math.PI) {
+					// Check direction of drift (angle) to decide which engine to fire
+					if (angle.getValue() > 0) { // Drifting right, angle is positive
+						performAction(Action.values()[Action.LEFT_ENGINE.getValue()]); // Fire LEFT_ENGINE to correct drift
+					} else if (angle.getValue() < 0) { // Drifting left, angle is negative
+					 performAction(Action.values()[Action.RIGHT_ENGINE.getValue()]); // Fire RIGHT_ENGINE to correct drift
+					}
+				}
 
 				
 
