@@ -35,6 +35,8 @@ public class QLearningController extends Controller {
 	double previous_x = 0;
 	double previous_y = 0;
 
+	Boolean toggleHover = false;
+
 	//minX: -1638.353297044766 maxX: 3202.4366775615435 minY: -2115.8942650529275 maxY: 1197.829041678518 minAngle: -3.1410734732421792 maxAngle: 3.1415204812065234
 	final static double minX = -1638.353297044766;
 	final static double maxX = 3202.4366775615435;
@@ -157,15 +159,27 @@ int correctiveAction = -1; // Default, -1 means no action.
 		iteration++;
 		
 		if (!paused) {
-			String new_state = StateAndReward.getStateHover(angle.getValue(), vx.getValue(), vy.getValue());
-
-			action_counter++;
-			if (new_state.equals(previous_state) && action_counter < REPEAT_ACTION_MAX) {
-				return;
+			String new_state = null;
+			double previous_reward = 0.;
+			if(toggleHover) {
+				/* Hover mode */
+				new_state = StateAndReward.getStateHover(angle.getValue(), vx.getValue(), vy.getValue());
+				action_counter++;
+				if (new_state.equals(previous_state) && action_counter < REPEAT_ACTION_MAX) {
+					return;
+				}
+				previous_reward = StateAndReward.getRewardHover(angle.getValue(), vx.getValue(), vy.getValue(), previous_vx, previous_vy );
+				action_counter = 0;
+			}else{
+				/* Angle mode */
+				new_state = StateAndReward.getStateAngle(angle.getValue(), vx.getValue(), vy.getValue());
+				action_counter++;
+				if (new_state.equals(previous_state) && action_counter < REPEAT_ACTION_MAX) {
+					return;
+				}
+				previous_reward = StateAndReward.getRewardAngle(angle.getValue(), vx.getValue(), vy.getValue());
+				action_counter = 0;
 			}
-			double previous_reward = StateAndReward.getRewardHover(angle.getValue(), vx.getValue(), vy.getValue(), previous_vx, previous_vy );
-
-			action_counter = 0;
 
 			/* The agent is in a new state, do learning and action selection */
 			if (previous_state != null) {
@@ -185,19 +199,49 @@ int correctiveAction = -1; // Default, -1 means no action.
 
 				
 				int action = selectAction(new_state); /* Make sure you understand how it selects an action */
-				/* TODO: IMPLEMENT Q-UPDATE HERE! */
-				
-				/* See top for constants and below for helper functions */
-				if (Math.abs(angle.getValue()) > 0.25 * Math.PI && Math.abs(angle.getValue()) < 0.75 * Math.PI) {
-					// Check direction of drift (angle) to decide which engine to fire
-					if (angle.getValue() > 0) { // Drifting right, angle is positive
-						performAction(Action.values()[Action.LEFT_ENGINE.getValue()]); // Fire LEFT_ENGINE to correct drift
-					} else if (angle.getValue() < 0) { // Drifting left, angle is negative
-					 performAction(Action.values()[Action.RIGHT_ENGINE.getValue()]); // Fire RIGHT_ENGINE to correct drift
-					}
-				}
 
+				if(toggleHover){
+					/* See top for constants and below for helper functions */
+					if (Math.abs(angle.getValue()) > 0.25 * Math.PI && Math.abs(angle.getValue()) < 0.75 * Math.PI) {
+						// Check direction of drift (angle) to decide which engine to fire
+						if (angle.getValue() > 0) { // Drifting right, angle is positive
+							performAction(Action.values()[Action.LEFT_ENGINE.getValue()]); // Fire LEFT_ENGINE to correct drift
+						} else if (angle.getValue() < 0) { // Drifting left, angle is negative
+						 performAction(Action.values()[Action.RIGHT_ENGINE.getValue()]); // Fire RIGHT_ENGINE to correct drift
+						}
+					}
+				}else{
+				    // Angle mode logic
+				    double currentAngle = angle.getValue();
+				    double absAngle = Math.abs(currentAngle);
+
+				    // Define angle tiers
+				    final double TIER1 = 0.1 * Math.PI;
+				    final double TIER2 = 0.25 * Math.PI;
+				    final double TIER3 = 0.5 * Math.PI;
+				    final double TIER4 = 0.75 * Math.PI;
+
+				    // Check the angle tier and decide which action to perform
+				    if (absAngle < TIER1) {
+				        // Rocket is almost upright, no need to correct
+				        performAction(Action.NO_ACTION);
+				    } else if (absAngle < TIER2) {
+				        // Slight tilt, fire the opposite engine briefly
+				        performAction(currentAngle > 0 ? Action.LEFT_ENGINE : Action.RIGHT_ENGINE);
+				    } else if (absAngle < TIER3) {
+				        // Moderate tilt, fire the opposite engine for longer
+				        performAction(currentAngle > 0 ? Action.LEFT_MIDDLE_ENGINES : Action.RIGHT_MIDDLE_ENGINES);
+				    } else if (absAngle < TIER4) {
+				        // Severe tilt, fire the opposite engine continuously
+				        performAction(currentAngle > 0 ? Action.LEFT_ENGINE : Action.RIGHT_ENGINE);
+				    } else {
+				        // Rocket is nearly inverted, engage a stronger correction
+				        performAction(currentAngle > 0 ? Action.ALL_ENGINES : Action.ALL_ENGINES);
+				    }
+
+				}
 				
+
 
 
 			    String current_stateaction = new_state + action;
@@ -307,12 +351,14 @@ int correctiveAction = -1; // Default, -1 means no action.
 
 	/* Keys 1 and 2 can be customized for whatever purpose if you want to */
 	public void toggleCustom1() {
-		System.out.println("Custom key 1 pressed!");
+		toggleHover = false;
+		System.out.println("toggle to upright mode!");
 	}
 
 	/* Keys 1 and 2 can be customized for whatever purpose if you want to */
 	public void toggleCustom2() {
-		System.out.println("Custom key 2 pressed!");
+		toggleHover = true;
+		System.out.println("toggle to hover mode!");
 	}
 	
 	public void pause() {

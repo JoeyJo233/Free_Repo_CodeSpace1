@@ -4,28 +4,45 @@ public class StateAndReward {
 	/* State discretization function for the angle controller */
 	public static String getStateAngle(double angle, double vx, double vy) {
 
-		/* TODO: IMPLEMENT THIS FUNCTION */
-		int discreteAngle = discretize(angle, 20, -Math.PI, Math.PI); // Finer discretization over the full angular range.
+		int discreteAngle = discretize(angle, 200, -Math.PI, Math.PI); // Finer discretization over the full angular range.
 		return "AngleState_" + discreteAngle;
 	}
 
 	/* Reward function for the angle controller */
 	public static double getRewardAngle(double angle, double vx, double vy) {
-		double reward = 0;
+		double absAngle = Math.abs(angle); // Use the absolute angle for comparison
 	
-		if (Math.abs(angle) < 0.1) { // Close to upright
-			reward = 1;
-		} else if (Math.abs(angle) > 2.8) { // Close to being inverted
-			// Assign an extremely large negative penalty
-			reward = -100; // You can adjust this value to represent an 'extremely large penalty'
+		// Define the boundaries of the angle tiers
+		final double TIER1 = 0.1 * Math.PI;
+		final double TIER2 = 0.25 * Math.PI;
+		final double TIER3 = 0.5 * Math.PI;
+		final double TIER4 = 0.75 * Math.PI;
+		final double TIER5 = Math.PI;
+	
+		// Set rewards or penalties for each tier
+		final double REWARD_TIER1 = 1;
+		final double PENALTY_TIER2 = -1;
+		final double PENALTY_TIER3 = -10;
+		final double PENALTY_TIER4 = -50;
+		final double PENALTY_TIER5 = -100;
+	
+		// Assign rewards or penalties based on the tier
+		double reward;
+		if (absAngle < TIER1) {
+			reward = REWARD_TIER1; // Encourage being upright
+		} else if (absAngle < TIER2) {
+			reward = PENALTY_TIER2; // Small penalty for slight tilt
+		} else if (absAngle < TIER3) {
+			reward = PENALTY_TIER3; // Larger penalty as tilt increases
+		} else if (absAngle < TIER4) {
+			reward = PENALTY_TIER4; // Even larger penalty for significant tilt
 		} else {
-			// Use an exponential function for penalty
-			// The base of the exponential can be adjusted according to how severe you want the penalty to be
-			reward = -Math.exp(Math.abs(angle) - 0.1);
+			reward = PENALTY_TIER5; // Maximum penalty for being nearly inverted
 		}
 	
 		return reward;
 	}
+	
 	
 	
 
