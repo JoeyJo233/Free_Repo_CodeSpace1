@@ -4,7 +4,7 @@ public class StateAndReward {
 	/* State discretization function for the angle controller */
 	public static String getStateAngle(double angle, double vx, double vy) {
 
-		int discreteAngle = discretize(angle, 200, -Math.PI, Math.PI); // Finer discretization over the full angular range.
+		int discreteAngle = discretize(angle, 12, -Math.PI, Math.PI); // Finer discretization over the full angular range.
 		return "AngleState_" + discreteAngle;
 	}
 
@@ -17,7 +17,7 @@ public class StateAndReward {
 		final double TIER2 = 0.25 * Math.PI;
 		final double TIER3 = 0.5 * Math.PI;
 		final double TIER4 = 0.75 * Math.PI;
-		final double TIER5 = Math.PI;
+
 	
 		// Set rewards or penalties for each tier
 		final double REWARD_TIER1 = 1;
@@ -49,8 +49,8 @@ public class StateAndReward {
 	/* State discretization function for the full hover controller */
 	public static String getStateHover(double angle, double vx, double vy) {
 		int discreteAngle = discretize(angle, 20, -Math.PI, Math.PI);
-		int discreteVx = discretize(vx, 10000, -50, 50);
-		int discreteVy = discretize(vy, 10000, -50, 50);
+		int discreteVx = discretize(vx, 100, -20, 20);
+		int discreteVy = discretize(vy, 100, -20, 20);
 		
 		return "HoverState_" + discreteAngle + "_" + discreteVx + "_" + discreteVy;
 	}

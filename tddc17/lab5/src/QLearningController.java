@@ -36,6 +36,12 @@ public class QLearningController extends Controller {
 	double previous_y = 0;
 
 	Boolean toggleHover = false;
+	// Define angle thresholds
+
+	final double SMALL_ANGLE = 0.1 * Math.PI;
+	final double MEDIUM_ANGLE = 0.2 * Math.PI;
+	final double LARGE_ANGLE = 0.333 * Math.PI;
+	final double CRITICAL_ANGLE = 0.75 * Math.PI;
 
 	//minX: -1638.353297044766 maxX: 3202.4366775615435 minY: -2115.8942650529275 maxY: 1197.829041678518 minAngle: -3.1410734732421792 maxAngle: 3.1415204812065234
 	final static double minX = -1638.353297044766;
@@ -180,6 +186,24 @@ int correctiveAction = -1; // Default, -1 means no action.
 				previous_reward = StateAndReward.getRewardAngle(angle.getValue(), vx.getValue(), vy.getValue());
 				action_counter = 0;
 			}
+			double currentAngle = angle.getValue();
+			double absAngle = Math.abs(currentAngle);
+
+			// Check the angle threshold and decide which action to perform
+			if (absAngle < SMALL_ANGLE) {
+			    // Rocket is almost upright, minimal or no action required
+			    performAction(Action.ALL_ENGINES);
+			} else if (absAngle < MEDIUM_ANGLE) {
+			    performAction(currentAngle > 0 ? Action.LEFT_MIDDLE_ENGINES : Action.RIGHT_MIDDLE_ENGINES);
+			    // Slight tilt, gentle correction needed
+			} else if (absAngle < LARGE_ANGLE) {
+			    performAction(currentAngle > 0 ? Action.LEFT_ENGINE : Action.RIGHT_ENGINE);
+
+				// Moderate tilt, more assertive correction needed
+			} else {
+			    // Severe tilt, engage a strong correction
+			    performAction(currentAngle > 0 ? Action.LEFT_ENGINE : Action.RIGHT_ENGINE);
+			} 
 
 			/* The agent is in a new state, do learning and action selection */
 			if (previous_state != null) {
@@ -199,49 +223,8 @@ int correctiveAction = -1; // Default, -1 means no action.
 
 				
 				int action = selectAction(new_state); /* Make sure you understand how it selects an action */
-
-				if(toggleHover){
-					/* See top for constants and below for helper functions */
-					if (Math.abs(angle.getValue()) > 0.25 * Math.PI && Math.abs(angle.getValue()) < 0.75 * Math.PI) {
-						// Check direction of drift (angle) to decide which engine to fire
-						if (angle.getValue() > 0) { // Drifting right, angle is positive
-							performAction(Action.values()[Action.LEFT_ENGINE.getValue()]); // Fire LEFT_ENGINE to correct drift
-						} else if (angle.getValue() < 0) { // Drifting left, angle is negative
-						 performAction(Action.values()[Action.RIGHT_ENGINE.getValue()]); // Fire RIGHT_ENGINE to correct drift
-						}
-					}
-				}else{
-				    // Angle mode logic
-				    double currentAngle = angle.getValue();
-				    double absAngle = Math.abs(currentAngle);
-
-				    // Define angle tiers
-				    final double TIER1 = 0.1 * Math.PI;
-				    final double TIER2 = 0.25 * Math.PI;
-				    final double TIER3 = 0.5 * Math.PI;
-				    final double TIER4 = 0.75 * Math.PI;
-
-				    // Check the angle tier and decide which action to perform
-				    if (absAngle < TIER1) {
-				        // Rocket is almost upright, no need to correct
-				        performAction(Action.NO_ACTION);
-				    } else if (absAngle < TIER2) {
-				        // Slight tilt, fire the opposite engine briefly
-				        performAction(currentAngle > 0 ? Action.LEFT_ENGINE : Action.RIGHT_ENGINE);
-				    } else if (absAngle < TIER3) {
-				        // Moderate tilt, fire the opposite engine for longer
-				        performAction(currentAngle > 0 ? Action.LEFT_MIDDLE_ENGINES : Action.RIGHT_MIDDLE_ENGINES);
-				    } else if (absAngle < TIER4) {
-				        // Severe tilt, fire the opposite engine continuously
-				        performAction(currentAngle > 0 ? Action.LEFT_ENGINE : Action.RIGHT_ENGINE);
-				    } else {
-				        // Rocket is nearly inverted, engage a stronger correction
-				        performAction(currentAngle > 0 ? Action.ALL_ENGINES : Action.ALL_ENGINES);
-				    }
-
-				}
-				
-
+				System.out.println("Action: " + action + "New State: " + new_state);
+						
 
 
 			    String current_stateaction = new_state + action;
@@ -254,13 +237,13 @@ int correctiveAction = -1; // Default, -1 means no action.
 				performAction(Action.values()[action]);
 				
 				/* Only print every 10th line to reduce spam */
-				print_counter++;
-				if (print_counter % 10000 == 0) {
-					System.out.println("ITERATION: " + iteration + " SENSORS: a=" + df.format(angle.getValue()) + " vx=" + df.format(vx.getValue()) + 
-							" vy=" + df.format(vy.getValue()) + " P_STATE: " + previous_state + " P_ACTION: " + previous_action + 
-							" P_REWARD: " + df.format(previous_reward) + " P_QVAL: " + df.format(Qtable.get(prev_stateaction)) + " Tested: "
-							+ Ntable.get(prev_stateaction) + " times.");
-				}
+				// print_counter++;
+				// if (print_counter % 10000 == 0) {
+				// 	System.out.println("ITERATION: " + iteration + " SENSORS: a=" + df.format(angle.getValue()) + " vx=" + df.format(vx.getValue()) + 
+				// 			" vy=" + df.format(vy.getValue()) + " P_STATE: " + previous_state + " P_ACTION: " + previous_action + 
+				// 			" P_REWARD: " + df.format(previous_reward) + " P_QVAL: " + df.format(Qtable.get(prev_stateaction)) + " Tested: "
+				// 			+ Ntable.get(prev_stateaction) + " times.");
+				// }
 				
 				previous_vy = vy.getValue();
 				previous_vx = vx.getValue();
